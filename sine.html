@@ -1,0 +1,85 @@
+<html>
+<script>
+    var canvas;
+    var state = 0;
+
+    sine_line = (ctx, x1, y1, x2, y2, A, lam, phi) => {
+        var Lx = x2 - x1;
+        var Ly = y2 - y1;
+        var angle = Math.atan2(Ly, Lx);
+        var dx = 1;
+        var L = Math.sqrt(Math.pow(Lx, 2) + Math.pow(Ly, 2));
+
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 3;
+
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.translate(x1, y1);
+
+        ctx.beginPath();
+        ctx.moveTo(0, A * Math.sin(phi));
+        for (var x = 0; x < L; x += dx) {
+            var y = A * Math.sin(2 * Math.PI * x / lam + phi);
+            ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+    }
+
+    draw = (state) => {
+        var ctx = canvas.getContext("2d");
+
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.translate(100, 100);
+        sine_line(ctx, 0, -20, 200, 0, 5, 25, state / 1000);
+        sine_line(ctx, 0, 20, 200, 0, 5, 25, state / 1000);
+
+        ctx.translate(0, 60);
+        sine_line(ctx, 0, -20, 200, 0, 5, 25, state / 1000);
+        sine_line(ctx, 0, 20, 200, 0, 5, 25, state / 1000 + Math.PI);
+
+        var slider = document.getElementById("slider");
+
+    }
+
+    tick = (timestamp) => {
+        draw(timestamp);
+        window.requestAnimationFrame(tick);
+    }
+
+    init = (event) => {
+        var container = document.getElementById("container")
+        canvas = document.createElement("canvas");
+        canvas.width = 500;
+        canvas.height = 500;
+        container.appendChild(canvas)
+
+        window.requestAnimationFrame(tick);
+
+    }
+
+    window.onload = init
+</script>
+<style>
+    .container {
+        border: 1px black;
+        padding: 5px;
+    }
+
+    #slider {
+        width: 500px;
+    }
+</style>
+
+
+<div class="container" id="container"></div>
+<input type="range" min="-8" max="8" value="0" step="0.0001" class="slider" id="slider">
+
+</html>

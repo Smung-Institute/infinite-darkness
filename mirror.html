@@ -1,0 +1,100 @@
+<html>
+<script>
+    var canvas;
+    var state = 0;
+
+    draw = (state) => {
+        var ctx = canvas.getContext("2d");
+
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#FFFFFF";
+
+        var slider = document.getElementById("slider");
+        var x = slider.value;
+        var angle = (Math.PI * x / 180) * 10;
+
+        // mirror frame of reference
+        ctx.save();
+        ctx.translate(400, 250);
+        ctx.rotate(angle);
+        ctx.fillRect(10, -7500, -10, 15000);
+
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.beginPath();
+        ctx.moveTo(0, -8);
+        ctx.lineTo(-8, -8);
+        ctx.lineTo(-8, 0);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-100, 0);
+        ctx.stroke();
+
+        ctx.restore();
+
+        // reflection frame of reference
+        ctx.save();
+        ctx.translate(400, 250);
+        // bouncing line
+        ctx.rotate(2 * angle);
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-500, 0);
+        ctx.stroke();
+
+        ctx.restore();
+
+        // incoming frame of reference
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.beginPath();
+        ctx.moveTo(0, 250);
+        ctx.lineTo(400, 250);
+        ctx.stroke();
+
+    }
+
+    tick = () => {
+        draw(state);
+        window.requestAnimationFrame(tick);
+    }
+
+    init = (event) => {
+        var container = document.getElementById("container")
+        canvas = document.createElement("canvas");
+        canvas.width = 500;
+        canvas.height = 500;
+        container.appendChild(canvas)
+
+        window.requestAnimationFrame(tick);
+
+    }
+
+    window.onload = init
+</script>
+<style>
+    .container {
+        border: 1px black;
+        padding: 5px;
+    }
+
+    #slider {
+        width: 500px;
+    }
+</style>
+
+
+<div class="container" id="container"></div>
+<input type="range" min="-8" max="8" value="0" step="0.0001" class="slider" id="slider">
+
+</html>
