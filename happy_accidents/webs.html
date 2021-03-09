@@ -1,0 +1,60 @@
+<html>
+<script>
+    var canvas;
+    var state = 0;
+
+
+    draw = (time) => {
+        var ctx = canvas.getContext("2d");
+
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#FFFFFF";
+        let lambda = 50
+        for (var x = 0; x < canvas.width; x++) {
+            for (var y = 0; y < canvas.height; y++) {
+                let L1 = Math.sqrt(x ** 2 + y ** 2);
+                let L2 = Math.sqrt(x ** 2 + (y - 500) ** 2);
+                let phi1 = Math.sin((L1 - 0.03 * time) * 2 * Math.PI / lambda);
+                let phi2 = Math.sin((L2 - 0.03 * time) * 2 * Math.PI / lambda);
+                let A = (phi1 + phi2) ** 2;
+                if (A < 0.01) {
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+    }
+
+    tick = (timestamp) => {
+        draw(timestamp);
+        window.requestAnimationFrame(tick);
+    }
+
+    init = (event) => {
+        var container = document.getElementById("container")
+        canvas = document.createElement("canvas");
+        canvas.width = 500;
+        canvas.height = 500;
+        container.appendChild(canvas)
+
+        window.requestAnimationFrame(tick);
+
+    }
+
+    window.onload = init
+</script>
+<style>
+    .container {
+        border: 1px black;
+        padding: 5px;
+    }
+</style>
+
+
+<div class="container" id="container"></div>
+
+</html>
