@@ -1,0 +1,78 @@
+<html>
+<script>
+    var canvas;
+    var state = 0;
+
+
+    draw = (time) => {
+        var ctx = canvas.getContext("2d");
+
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#FFFFFF";
+        let lambda = 50
+
+        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        //var imageData = ctx.createImageData(400, 300);
+        //console.log(imageData.length);
+        //var myImageData = ctx.createImageData(canvas.width, canvas.height);
+        for (var y = 0; y < canvas.height; y++) {
+        for (var x = 0; x < canvas.width; x++) {
+
+                let L1 = Math.sqrt(x ** 2 + y ** 2);
+                let L2 = Math.sqrt((x - 200) ** 2 + (y - 200) ** 2);
+                let phi1 = Math.sin((L1 - 0.03 * time) * 2 * Math.PI / lambda) * 500 / L1;
+                let phi2 = Math.sin((L2 - 0.03 * time) * 2 * Math.PI * 2.1 / lambda) * 500 / L2;
+                let A = (phi1 + 0.4 * phi2) ** 2;
+                if (A < 0.02) {
+                    imageData.data[ 4*canvas.width * y + 4*x ] = 255
+                    imageData.data[ 4*canvas.width * y + 4*x + 1] = 255
+                    imageData.data[ 4*canvas.width * y + 4*x + 2] = 255
+                    //imageData.data[ 3*canvas.width * y + 3*x +1] = 255
+                    //imageData.data[ 3*canvas.width * y + 3*x +2] = 255
+                    //ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    tick = (timestamp) => {
+        draw(timestamp);
+        window.requestAnimationFrame(tick);
+    }
+
+    init = (event) => {
+        var container = document.getElementById("container")
+        canvas = document.createElement("canvas");
+        canvas.width = 1000;
+        canvas.height = 500;
+        container.appendChild(canvas)
+
+        window.requestAnimationFrame(tick);
+
+    }
+
+    window.onload = init
+</script>
+<style>
+    .container {
+        border: 1px black;
+        padding: 5px;
+    }
+
+    .slider {
+        width: 500px;
+    }
+</style>
+
+
+<div class="container" id="container"></div>
+
+<input class="slider" type="range" />
+
+</html>
