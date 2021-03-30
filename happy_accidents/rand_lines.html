@@ -1,0 +1,197 @@
+<html>
+<script>
+    var ray_canvas;
+    var phase_canvas;
+    var state = 0;
+    var lines = [];
+    const NLINES = 5000;
+
+    height_at_x = (x, line) => {
+        var dx = x - line.x;
+        var y = line.y + dx * Math.tan(line.theta)
+        return y;
+    }
+
+    draw_line = (ctx, line, aperture_d) => {
+        var x = line.x;
+        var y = line.y;
+        var theta = line.theta;
+
+
+        var L = 5 * Math.max(ray_canvas.width, ray_canvas.height);
+        var x0 = x - Math.cos(theta) * L;
+        var y0 = y - Math.sin(theta) * L;
+        var x1 = x + Math.cos(theta) * L;
+        var y1 = y + Math.sin(theta) * L;
+
+
+        ctx.strokeStyle = "#FFFFFF";
+
+        var height_at_y_axis = height_at_x(0, line);
+        if (Math.abs(height_at_y_axis) > aperture_d / 2) {
+            ctx.strokeStyle = "#333333";
+            x1 = 0;
+            y1 = height_at_y_axis;
+        }
+
+        // Hole collision code
+        // if hits screen make end on screen
+
+        ctx.save()
+        ctx.translate(ray_canvas.width / 2, ray_canvas.height / 2)
+
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    draw_phase_point = (ctx, x, aperture_d, line) => {
+        ctx.save()
+        if (Math.abs(height_at_x(0, line)) > aperture_d / 2) {
+            ctx.fillStyle = "#333333";
+        }
+
+        ctx.translate(phase_canvas.width / 2, phase_canvas.height / 2);
+        //ctx.scale(1, phase_canvas.height / (2 * Math.PI * 0.2));
+        var y = height_at_x(x, line);
+        //ctx.beginPath();
+        //ctx.moveTo(y, line.theta);
+        //ctx.arc(y, line.theta, 2, 0, Math.PI * 2, true);
+        ctx.fillRect(3 * y, phase_canvas.height * line.theta / (2 * Math.PI * 0.1), 2, 2);
+        //ctx.fill();
+
+        ctx.restore();
+
+    }
+
+    draw_aperture = (ctx, d) => {
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.save()
+
+        ctx.beginPath();
+        ctx.lineWidth = 10;
+        ctx.translate(ray_canvas.width / 2, ray_canvas.height / 2)
+        ctx.moveTo(0, d / 2);
+        ctx.lineTo(0, ray_canvas.height / 2);
+        ctx.moveTo(0, -d / 2);
+        ctx.lineTo(0, -ray_canvas.height / 2);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    draw_plot_axes = (phase_ctx) => {
+        // draw axes of plot
+        phase_ctx.strokeStyle = "#FFFFFF";
+        // y axis
+        phase_ctx.beginPath();
+        phase_ctx.setLineDash([5, 5]);
+        phase_ctx.moveTo(phase_canvas.width / 2, 0);
+        phase_ctx.lineTo(phase_canvas.width / 2, phase_canvas.height);
+        phase_ctx.stroke();
+        // x axis
+        phase_ctx.beginPath();
+        phase_ctx.setLineDash([5, 5]);
+        phase_ctx.moveTo(0, phase_canvas.height / 2);
+        phase_ctx.lineTo(phase_canvas.width, phase_canvas.height / 2);
+        phase_ctx.stroke();
+    }
+    draw_screen = (ctx, screen_x) => {
+        ctx.save()
+        ctx.translate(ray_canvas.width / 2, 0)
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(screen_x, 0);
+        ctx.lineTo(screen_x, ray_canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore()
+    }
+
+    draw = (state) => {
+        init_ctx = (canvas) => {
+            var ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#FFFFFF";
+            return ctx;
+        }
+        var ray_ctx = init_ctx(ray_canvas);
+        var phase_ctx = init_ctx(phase_canvas);
+
+
+        var slider = document.getElementById("slider");
+        var aperture_d = slider.value;
+
+        var slider = document.getElementById("x_slider");
+        var screen_x = ray_canvas.width / 2 * slider.value;
+
+        lines.forEach((line, i) => {
+            if (i < 100) { // only draw the first 100 lines
+                draw_line(ray_ctx, line, aperture_d);
+            }
+            draw_phase_point(phase_ctx, screen_x, aperture_d, line);
+        });
+
+        draw_aperture(ray_ctx, aperture_d);
+        draw_plot_axes(phase_ctx);
+        draw_screen(ray_ctx, screen_x);
+
+
+
+    }
+
+    tick = () => {
+        draw(state);
+        window.requestAnimationFrame(tick);
+    }
+
+    init = (event) => {
+        make_canvas = (width, height, container_name) => {
+            canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            document.getElementById(container_name).appendChild(canvas);
+            return canvas
+        }
+
+        ray_canvas = make_canvas(500, 300, "ray_container")
+        phase_canvas = make_canvas(500, 300, "phase_container")
+
+        for (var line = 0; line < NLINES; line++) {
+            lines.push({
+                x: -ray_canvas.width * 0.5,//(Math.random() - 0.5) * ray_canvas.width * 3,
+                y: (Math.random() - 0.5) * ray_canvas.height * 0.1,
+                theta: (Math.random() - 0.5) * 2 * Math.PI * 0.06
+            });
+        }
+
+        window.requestAnimationFrame(tick);
+
+    }
+
+    window.onload = init
+</script>
+<style>
+    .container {
+        border: 1px black;
+        padding: 5px;
+    }
+
+    #slider {
+        width: 500px;
+    }
+</style>
+
+
+<div class="ray_container" id="ray_container"></div>
+<div class="phase_container" id="phase_container"></div>
+<input type="range" min="10" max="100" value="0" step="0.1" class="slider" id="slider">
+<input type="range" min="-1" max="1" value="0" step="0.001" class="slider" id="x_slider">
+
+</html>
