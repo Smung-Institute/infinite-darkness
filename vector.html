@@ -1,0 +1,288 @@
+<html>
+
+
+<script>
+//WILLLLLLLL
+
+V2 = (x,y) => [x,y]
+xhat = V2(1,0);
+yhat = V2(0,1);
+dot = (u, v) => u[0]*v[0]+u[1]*v[1];
+
+console.log(dot(xhat, yhat));
+console.log(dot(xhat, xhat));
+
+norm2 = (u) => dot(u,u);
+norm = (u) => Math.sqrt(norm2(u));
+vadd = (u, v) => V2(u[0]+v[0], u[1]+v[1]);
+smul = (a,u) => V2(a*u[0], a*u[1]);
+vsub = (u,v) => V2(u[0]-v[0], u[1]-v[1]);
+sdiv = (a,u) => V2(u[0]/a, u[1]/a);
+normalize = (u) => sdiv(norm(u),u);
+vneg = (u) => smul(-1,u);
+cross = (u,v) => u[0] * v[1] - u[1] * v[0];
+angle = (u,v) => {
+    var u = normalize(u);
+    var v = normalize(v);
+    return Math.atan2(  cross(u,v), dot(u,v)  );
+}
+console.log(angle(xhat, yhat), " = ", Math.PI/2);
+rotate = (theta,v) => V2(Math.cos(theta)*v[0]-Math.sin(theta)*v[1], Math.sin(theta)*v[0]+Math.cos(theta)*v[1])
+perp = (v) => V2(-v[1], v[0]);
+
+console.log(rotate(Math.PI / 2, xhat)  , " = ",  yhat);
+reflect = (v,n) => vsub(v, smul(2*dot(v,n) , n ));
+console.log(reflect( vadd(xhat,yhat) , yhat  ), " = ", vsub(xhat, yhat)  );
+
+
+Ray = (pos,dir) => ({
+    pos : pos,
+    dir : normalize(dir)
+});
+console.log(Ray(xhat,yhat));
+
+transRay = (dr) => (ray) => Ray( vadd(ray.pos, dr), ray.dir );
+rotRay = (theta) => (ray) => Ray( rotate(theta,ray) , rotate(theta,ray.dir) );
+// scaleRay = (theta) => (ray) => Ray( vadd(ray.pos, dr), ray.dir );
+
+
+prop = (ray, t) => Ray( vadd( ray.pos, smul(t, ray.dir) ) ,
+                       ray.dir );
+
+Hit = (pos,norm,t) => ({
+    pos : pos,
+    norm : normalize(norm),
+    t : t
+});
+
+/*
+A collision function takes a ray, and returns a Hit or null.
+*/
+
+// ax + by + c = 0
+// y = mx + b
+// r0 = (x0,y0) r1 = (x1,y1)
+// 
+/*
+p + td == (1 - u) * r0 + u * r1
+dbar = perp(d)
+
+https://rootllama.wordpress.com/2014/06/20/ray-line-segment-intersection-test-in-2d/
+*/
+
+object = (collision, material, draw) => ({
+    collision : collision,
+    material : material,
+    draw : draw
+})
+
+
+
+
+
+line_collider = (r0, r1) => (ray) => {
+    var v1 = vsub(ray.pos, r0);
+    var v2 = vsub(r1, r0);
+    var v3 = perp(ray.dir);
+
+    var t1 = cross(v2, v1)/dot(v2, v3);
+    var t2 = dot(v1, v3)/dot(v2, v3);
+
+    if(0 <= t2 && t2 <= 1 && t1 >= 0){
+        var normal = normalize(perp(v2));
+        if (dot(normal, ray.dir) > 0) {
+            normal = vneg(normal);
+        }
+        return Hit(prop(ray, t1).pos, normal, t1);
+    }
+    else{
+        return null;
+    }
+}
+
+shiny_material = (hit, ray) => {
+    return Ray(hit.pos, reflect(ray.dir, hit.normal));
+}
+
+line_draw = (r0, r1) => (ctx) => {
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.moveTo(...r0);
+    ctx.lineTo(...r1);
+    ctx.stroke();
+}
+
+Line = (r0, r1) => {
+    return object(
+        line_collider(r0,r1),
+        shiny_material,
+        line_draw(r0,r1)
+    )
+
+}
+
+
+
+line = line_collider(V2(1,-1), V2(1,1));
+ray = Ray(V2(0,0), V2(1, 0));
+console.log(
+    line(ray)
+    );
+
+line = line_collider(V2(1,-10), V2(1,10));
+ray = Ray(V2(0,0), V2(1, 1));
+console.log(
+    line(ray)
+    );
+
+line = line_collider(V2(100,-10), V2(100,10));
+ray = Ray(V2(0,0), V2(1, 1));
+console.log(
+    line(ray)
+    );
+
+
+
+union = (...geoms) =>
+    ray => {
+        var bestHit = null;
+        geoms.forEach( geom => {
+            hit = geom(ray);
+            if(hit != null){
+                if(bestHit == null || hit.t < bestHit.t) {
+                        bestHit = hit;
+                }
+            }
+        });
+        return bestHit;
+    }
+
+ray = Ray(V2(-0.5,0.5), V2(1, 0));
+square = union(
+    line_collider(V2(0,0), V2(0,1)),
+    line_collider(V2(0,1), V2(1,1)),
+    line_collider(V2(1,1), V2(1,0)),
+    line_collider(V2(1,0), V2(0,0))
+)
+console.log(square(ray))
+
+
+/*
+Sphere
+x**2 + y**1 = 1  = r**2
+p + td 
+
+(p + td)**2 = 1
+(d**2)t**2 + 2 d . p * t + p**2 - 1 == 0
+t = -2 * 2 d . p  +-  sqrt(  b**2 - 4 * a * c  ) / 2 a
+
+
+
+*/
+unit_circle = (ray) => { // Adding in R wouldn't be hard
+    var a = norm2(ray.dir);
+    var b = 2 * dot(ray.pos, p.dir);
+    var c = norm2(day.pos) - 1
+    var q = - b / a;
+    var p = Math.sqrt(b**2 - 4 * a * c) / 2 / a;
+    var t1 = q + p
+    var t2 = q - p;
+    if(t1 < 0 && t2 < 0 ){
+        return null;
+    }
+    var t;
+    if(t1 < 0){
+        t = t2;
+    }
+    else if(t2 < 0){
+        t = t1;
+    }else{
+        t = min(t1,t2);
+    }
+    var ray = prop(ray,t);
+    var normal = normalize(ray.pos);
+    if (dot(normal, ray.dir) > 0) {
+            normal = vneg(normal);
+        }
+    return Hit( pos , normal , t); // should we be careful to make the normal point somewhere good?
+
+}
+/*
+
+z
+s(z)
+s(s(z))
+
+
+add(z,Y,Y).
+add(s(X), Y,  s(Z)  ) :- add(X,Y,Z).
+
+
+
+
+main :- print "hello world", 
+        open "foot.txt" File, 
+
+
+1 3 4 5 
+
+
+
+*/
+
+/*
+Material
+(hit : Hit, ray: Ray) -> Maybe Ray
+
+Refractive/Snell
+Reflective
+Absorber - aperture
+*/
+
+
+/*
+Bundle together drawing and collisions and material.
+Objects
+
+draw : ctx => 
+
+*/
+
+
+
+
+
+
+
+
+
+
+var canvas;
+
+
+
+
+
+draw = () => {
+    var ctx = canvas.getContext("2d");
+    //
+}
+init = (event) => {
+        var container = document.getElementById("container")
+        canvas = document.createElement("canvas");
+        canvas.width = 500;
+        canvas.height = 500;
+        container.appendChild(canvas)
+
+        //window.requestAnimationFrame(tick);
+        draw();
+
+    }
+
+    window.onload = init
+
+</script>
+
+<div class="container" id="container"></div>
+
+</html>
