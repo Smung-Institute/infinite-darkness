@@ -1,0 +1,100 @@
+<html>
+<script src="flimbo.js"></script>
+<script>
+    var canvas;
+    var state = 0;
+    var world = [];
+    var rays = [];
+    var slider;
+
+    draw = (state) => {
+        var ctx = canvas.getContext("2d");
+
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        world.forEach(obj => obj.draw(ctx))
+
+        var current_rays = [...rays];
+
+        var bounces = 0;
+        while (current_rays.length > 0) {
+            console.log(current_rays)
+            current_rays = current_rays
+                .map(ray => {
+                    var closest_hit = null;
+                    var closest_obj = null;
+                    world.forEach(obj => {
+                        var hit = obj.collider(ray);
+                        console.log(hit)
+                        if (hit && (!closest_hit || (hit.t < closest_hit.t))) {
+                            closest_hit = hit;
+                            closest_obj = obj;
+                        }
+                    })
+                    var prop_ray = prop_draw(ray, closest_hit.t, ctx)
+                    var new_ray = closest_obj.material(closest_hit, prop_ray)
+                    if (new_ray) {
+                        return prop_draw(new_ray, 10, ctx);
+                    } else {
+                        return null;
+                    }
+                })
+                .filter(ray => ray != null)
+
+            bounces++;
+            if (bounces > 10) {
+                break;
+            }
+        }
+
+    }
+
+    tick = () => {
+        draw(state);
+        var ray = Ray(V2(1, 100), V2(1, slider.value))
+        rays = [ray]
+        window.requestAnimationFrame(tick);
+    }
+
+    init = (event) => {
+        var container = document.getElementById("container")
+        canvas = document.createElement("canvas");
+        canvas.width = 500;
+        canvas.height = 500;
+        container.appendChild(canvas)
+
+        slider = document.getElementById("slider");
+
+        world.push(boundary(0, 0, canvas.width, canvas.height))
+
+        world.push(shiny_line(V2(0, 0), V2(2000, 2000)))
+        world.push(shiny_line(V2(0, 200), V2(200, 400)))
+
+
+
+        window.requestAnimationFrame(tick);
+
+    }
+
+    window.onload = init
+</script>
+<style>
+    .container {
+        border: 1px black;
+        padding: 5px;
+    }
+
+    #slider {
+        width: 500px;
+    }
+</style>
+
+
+<div class="container" id="container"></div>
+<input type="range" min="-8" max="8" value="0" step="0.0001" class="slider" id="slider">
+
+</html>
