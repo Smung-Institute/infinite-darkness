@@ -1,0 +1,157 @@
+<html>
+<script src="flimbo.js"></script>
+<script>
+    var ray_canvas;
+    var phase_canvas;
+    var state = 0;
+    var world = [];
+    var rays = [];
+    var aperature_slider;
+    var screen_slider;
+
+    draw_plot_axes = (ctx) => {
+        // draw axes of plot
+        ctx.strokeStyle = "#FFFFFF";
+        // y axis
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(phase_canvas.width / 2, 0);
+        ctx.lineTo(phase_canvas.width / 2, phase_canvas.height);
+        ctx.stroke();
+        // x axis
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(0, phase_canvas.height / 2);
+        ctx.lineTo(phase_canvas.width, phase_canvas.height / 2);
+        ctx.stroke();
+    }
+
+
+    phase_material = (ctx) => (hit, ray) => {
+        ctx.fillStyle = "#FFFFFF";
+
+        ctx.fillRect((hit.pos[1] * phase_canvas.width / ray_canvas.height), (ray.dir[1] + 1) * 150, 2, 2)
+        return Ray(hit.pos, ray.dir);
+    }
+
+    screen_line = (r0, r1, ctx) => {
+        return Objekt(
+            line_collider(r0, r1),
+            phase_material(ctx),
+            line_artist(r0, r1)
+        )
+    }
+
+    clear = (canvas, ctx) => {
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    draw = (state) => {
+
+        var ray_ctx = ray_canvas.getContext("2d");
+        var phase_ctx = phase_canvas.getContext("2d");
+
+        clear(ray_canvas, ray_ctx);
+        clear(phase_canvas, phase_ctx);
+
+        draw_plot_axes(phase_ctx)
+
+        world.forEach(obj => obj.draw(ray_ctx))
+
+        var current_rays = [...rays];
+
+        var bounces = 0;
+        while (current_rays.length > 0) {
+            current_rays = current_rays
+                .map(ray => {
+                    var closest_hit = null;
+                    var closest_obj = null;
+                    world.forEach(obj => {
+                        var hit = obj.collider(ray);
+                        if (hit && (!closest_hit || (hit.t < closest_hit.t))) {
+                            closest_hit = hit;
+                            closest_obj = obj;
+                        }
+                    })
+                    if (closest_hit === null) {
+                        return null;
+                    }
+                    var prop_ray = prop_draw(ray, closest_hit.t, ray_ctx)
+                    var new_ray = closest_obj.material(closest_hit, prop_ray)
+                    if (new_ray) {
+                        return prop_draw(new_ray, 10, ray_ctx);
+                    } else {
+                        return null;
+                    }
+                })
+                .filter(ray => ray != null)
+
+            bounces++;
+            if (bounces > 10) {
+                break;
+            }
+        }
+
+    }
+
+    tick = () => {
+        draw(state);
+
+        world = [];
+        world.push(boundary(0, 0, ray_canvas.width, ray_canvas.height))
+
+        var d = parseInt(aperature_slider.value);
+        var screen_x = parseInt(screen_slider.value);
+
+        world.push(absorbing_rect(ray_canvas.width / 2, 0, 15, (ray_canvas.height - d) / 2))
+        world.push(absorbing_rect(ray_canvas.width / 2, (ray_canvas.height + d) / 2, 15, (ray_canvas.height - d) / 2))
+        world.push(screen_line(V2(screen_x, 0), V2(screen_x, ray_canvas.height), phase_canvas.getContext("2d")))
+
+        window.requestAnimationFrame(tick);
+    }
+
+    init = (event) => {
+        make_canvas = (width, height, container_name) => {
+            canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            document.getElementById(container_name).appendChild(canvas);
+            return canvas
+        }
+
+        ray_canvas = make_canvas(500, 300, "ray_container")
+        phase_canvas = make_canvas(500, 300, "phase_container")
+
+        aperature_slider = document.getElementById("aperature_slider");
+        screen_slider = document.getElementById("screen_slider");
+
+        var source = line_source(V2(5, 200), V2(5, ray_canvas.height - 200));
+        rays = Array(200).fill().map((i) => source());
+
+        window.requestAnimationFrame(tick);
+
+    }
+
+    window.onload = init
+</script>
+<style>
+    .container {
+        border: 1px black;
+        padding: 5px;
+    }
+
+    #slider {
+        width: 500px;
+    }
+</style>
+
+<div class="container" id="ray_container"></div>
+<div class="container" id="phase_container"></div>
+<input type="range" min="10" max="100" value="0" step="0.1" class="slider" id="aperature_slider">
+<input type="range" min="10" max="500" value="0" step="0.001" class="slider" id="screen_slider">
+
+</html>

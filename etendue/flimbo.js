@@ -20,6 +20,9 @@ angle = (u, v) => {
 rotate = (theta, v) => V2(Math.cos(theta) * v[0] - Math.sin(theta) * v[1], Math.sin(theta) * v[0] + Math.cos(theta) * v[1])
 perp = (v) => V2(-v[1], v[0]);
 reflect = (v, n) => vsub(v, smul(2 * dot(v, n), n));
+lerp = (r0, r1, t) => vadd(r0, smul(t, vsub(r1, r0)));
+
+
 
 ///////////////////////////
 //        Optics         //
@@ -76,6 +79,13 @@ Objekt = (collider, material, draw) => ({
     draw: draw
 })
 
+line_source = (r0, r1) => () => {
+
+    var angle = Math.PI * Math.random()
+
+    return Ray(lerp(r0, r1, Math.random()), V2(Math.sin(angle), Math.cos(angle)));
+}
+
 
 shiny_material = (hit, ray) => {
     return Ray(hit.pos, reflect(ray.dir, hit.normal));
@@ -119,7 +129,6 @@ shiny_line = (r0, r1) => {
         shiny_material,
         line_artist(r0, r1)
     )
-
 }
 
 union = (...geoms) => ray => {
@@ -142,4 +151,18 @@ rect_collider = (x, y, w, h) => union(
     line_collider(V2(x, y + h), V2(x, y))
 )
 
-boundary = (x, y, w, h) => Objekt(rect_collider(x, y, w, h), absorbing_material, (ctx) => { })
+boundary = (x, y, w, h) => Objekt(
+    rect_collider(x, y, w, h),
+    absorbing_material,
+    (ctx) => { }
+)
+
+absorbing_rect = (x, y, w, h) => Objekt(
+    rect_collider(x, y, w, h),
+    absorbing_material,
+    (ctx) => {
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        ctx.stroke();
+    }
+)

@@ -80,6 +80,16 @@
         ctx.lineTo(0, -ray_canvas.height / 2);
         ctx.stroke();
 
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.moveTo(0, d / 2 + 1);
+        ctx.lineTo(30, d / 2 + 1);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(35, d / 2, 5, 0, 2 * Math.PI);
+        ctx.stroke();
+
         ctx.restore();
     }
 

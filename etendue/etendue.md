@@ -27,3 +27,9 @@ Number of rays between certain angles. Like castyle slit
 Rays or beams?
 
 theta r space.
+
+Go through a lens, orj ust a flat interface into new mateiral
+Maybe a parabolic concentrator
+Sphere system
+Multiple pinholes
+Thermodyanmic
